@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
+using static System.Net.WebRequestMethods;
 
 namespace fut5.Services
 {
@@ -22,7 +23,7 @@ namespace fut5.Services
             }
         }
         //public static string BaseUrl { get; set; } = "https://fut5umapi.azurewebsites.net/";
-        public static string BaseUrl { get; set; } = "http://localhost:5110/";
+        public static string BaseUrl { get; set; } = "";
 
         public static string ResponseReason { get; set; } = "";
         public static bool LoggedIn { get; set; } = false;
@@ -35,10 +36,16 @@ namespace fut5.Services
 
         public static async Task<bool> FetchTokenAsync(string email, string password) 
         {
-            var isSuccessStatusCode = false;
+            bool isSuccessStatusCode;
             var apiUrl = "";
             try
             {
+
+                if (Fut5ApiService.BaseUrl == "")
+                {
+                    Fut5ApiService.BaseUrl = Fut5Config.API_URL;
+                }
+
                 apiUrl = Fut5ApiService.BaseUrl + "Login";
                 // what if pass contains invalid json ? ###
                 var json = "{\"email\":\"@1@\",\"password\":\"@2@\"}".Replace("@1@", email).Replace("@2@", password);
