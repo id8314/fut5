@@ -10,4 +10,4 @@ services:
       - 8800:80
 
 # https://chrissainty.com/containerising-blazor-applications-with-docker-containerising-a-blazor-webassembly-app/
-# Make sure nginx.cfg is saved as UTF-8 without BOM !!!
+# Make sure nginx.conf is saved as UTF-8 without BOM !!!
