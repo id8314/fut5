@@ -1,0 +1,80 @@
+﻿@page "/Login"
+
+@inject NavigationManager NavigationManager
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using System.Text
+@using fut5.Data
+@using fut5.Services
+
+<div id="loader" class="@LoaderClass"></div>
+
+<div hidden="@hideLoginBox">
+    <h1>Login</h1>
+
+    <input type="text" id="login" name="login" placeholder="e-mail" @bind="@Credentials.Login">
+    <input type="password" id="password" name="login" placeholder="PIN" @bind="@Credentials.Password">
+    <button class="btn btn-primary" @onclick="()=>checkCredentials()">Go</button>
+
+    <p><label>@mylabel</label></p>
+    <span style="white-space: pre-line">@ExceptionMessage</span>
+</div>
+
+@code {
+
+    String @mylabel = "";
+    String @ExceptionMessage = "";
+    String @LoaderClass = "";
+    bool hideLoginBox = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Run(() => doInit());
+    }
+    private void doInit()
+    {
+        Credentials.Login = "";
+        Credentials.Password = "";
+    }
+
+    private async Task checkCredentials()
+    {
+        try
+        {
+            ExceptionMessage = "";
+            Credentials.Login = Credentials.Login.Trim().ToLower();
+            Credentials.Password = Credentials.Password.Trim();
+            if (Credentials.Login.Length > 1 && Credentials.Password.Length > 1)
+            {
+                LoaderClass = "loader";
+                hideLoginBox = true;
+                var ok = await Fut5ApiService.FetchTokenAsync(Credentials.Login, Credentials.Password);
+                if (!ok)
+                {
+                    LoaderClass = "";
+                    hideLoginBox = false;
+                    mylabel = "Validation Failed";
+                }
+                else
+                {
+                    if(Fut5ApiService.IsAdmin)
+                    {
+                        var apiUrl = Fut5ApiService.BaseUrl + "GamesPurge";
+                        // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+                        await Fut5ApiService.apiClient.GetAsync(apiUrl);
+                    }
+                    NavigationManager.NavigateTo("/Jogos");
+                }   
+            }
+            else
+            {
+                ExceptionMessage = "Try again... This time input something :)";
+            }
+        }
+        catch (Exception e)
+        {
+            ExceptionMessage = e.Message;
+        }
+    }
+
+}

@@ -1,0 +1,151 @@
+﻿@page "/AtletaClubes"
+
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using System.Text
+@using fut5.Data
+@using fut5.Services
+
+@inject NavigationManager NavigationManager
+
+<h1>Associar atleta a clube(s)</h1>
+
+@if (membership == null)
+{
+    <p><em>Tem de criar pelo menos um clube antes de poder associar atletas.</em></p>
+}
+else
+{
+    <label>@mylabel</label>
+
+<div class="dcf-overflow-x-auto" tabindex="0">
+<table class="dcf-table dcf-w-100%">
+        @if (!(clubes == null || clubes.Length == 0))
+        {
+	        <thead>
+		        <tr>
+			        <th scope="col">Nome</th>
+			        <th scope="col"></th>
+		        </tr>
+	        </thead>
+        }
+        <tbody>
+        @if (membership != null)
+            foreach (var a in membership)
+            {
+                <tr>
+			        <th scope="row">@a.clube</th>
+			        <td><span><input type="checkbox" @bind="@a.isMember"></span></td>
+		        </tr>
+            }
+		    <tr>
+			    <th scope="row"></th>
+			    <td><span>
+                        <button class="btn btn-primary" @onclick="()=>membershipSave()">Save</button>
+                    </span></td>
+		    </tr>
+        </tbody>
+    </table>
+    </div>
+}
+
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+
+    private String @mylabel = "";
+    private String @ExceptionMessage = "";
+    private ClubeMember[] membership = null;
+    private Clube[] clubes = null;
+    private Clube clube = new Clube();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var apiUrl = "";
+
+        mylabel = NavigationManager.Uri.ToString();
+        var email = mylabel.Substring(mylabel.IndexOf('?') + 1, mylabel.Length - mylabel.IndexOf('?') - 1);
+        mylabel = email;
+        try
+        {
+            await loadClubes();
+            if (clubes.Length == 0)
+            {
+                mylabel = "Nenhum clube encontrado!";
+            }
+            else
+            {
+                apiUrl = Fut5ApiService.BaseUrl + $"ClubesGetFor/{email}";
+                // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+                var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+                var res = JsonSerializer.Deserialize<List<Clube>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+                var clubMembership = res.ToArray<Clube>();
+                var items = new List<ClubeMember>();
+                foreach (var c in clubes)
+                {
+                    bool flag = false;
+                    foreach (var m in clubMembership)
+                    {
+                        if(c.Nome == m.Nome)
+                        {
+                            flag = true;
+                            break;
+                        }
+                    }
+                    items.Add(new ClubeMember(email,c.Nome,flag,false));
+                }
+                membership = items.ToArray<ClubeMember>();
+            }
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task membershipSave()
+    {
+        var apiUrl = "";
+        try
+        {
+            apiUrl = Fut5ApiService.BaseUrl + $"ClubesSetFor/{mylabel}";
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var members = new List<ClubeMember>();
+            foreach (var item in membership)
+            {
+                members.Add(item);
+            }
+            var content = new StringContent(JsonSerializer.Serialize<List<ClubeMember>>(members), Encoding.UTF8, "application/json");
+            await Fut5ApiService.apiClient.PostAsync(apiUrl, content);
+
+            NavigationManager.NavigateTo("/Atletas");
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task loadClubes()
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "Clubes";
+        try
+        {
+                // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+                var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+                var c = JsonSerializer.Deserialize<List<Clube>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+                clubes = c.ToArray<Clube>();
+
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+}

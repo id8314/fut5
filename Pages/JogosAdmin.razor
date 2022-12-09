@@ -1,0 +1,178 @@
+﻿@page "/JogosAdmin"
+
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using System.Text
+@using fut5.Data
+@using fut5.Services
+
+<h3>Jogos</h3>
+
+@if (@jogos.Length > 0)
+{
+<div>
+    <hr />
+    @foreach (var jogo in jogos)
+    {
+        <p>@jogo.DataJogo.ToString("yyyy-MM-dd") @jogo.Clube (@culture.DateTimeFormat.GetDayName(@jogo.DataJogo.DayOfWeek))</p>
+        <p>@jogo.DataInscricoes.ToString("yyyy-MM-dd") Inscrições (@culture.DateTimeFormat.GetDayName(@jogo.DataInscricoes.DayOfWeek))</p>
+        <p><button class="btn btn-primary" @onclick="()=>cancelGame(jogo)">Cancelar</button></p>
+        <p><button class="btn btn-primary" @onclick="()=>gotoInscriptions()">Ver Inscrições</button></p>
+        <hr />
+    }
+</div>
+}
+
+<div><hr class="hr_thick" /></div>
+
+@if (@clubes.Length > 0)
+{
+    <div>
+        <table>
+            <tr>
+                <td scope="col">Clube</td>
+                <td scope="col">
+                    <select @bind="clubeEscolhido">
+                        @foreach (var clube in clubes)
+                        {
+                            <option value="@clube.Nome">@clube.Nome</option>
+                        }
+                    </select>
+                </td>
+                <td scope="col"></td>
+            </tr>
+            <tr>
+                <td scope="col">Data do jogo</td>
+                <td>
+                    <input type="date" min="@minDate" @bind-value="@gameDate" onkeydown="return false" />
+                </td>
+                <td scope="col"><label>@mylabel</label></td>
+            </tr>
+            <tr>
+                <td scope="col">Abrir Inscrições a</td>
+                <td scope="col">
+                    <input type="date" min="@minDate" @bind-value="@openDate" onkeydown="return false" />
+                </td>
+                <td scope="col"><label>@mylabel2</label></td>
+            </tr>
+        </table>
+    </div>
+    <button class="btn btn-primary" @onclick="()=>createGame()">Criar jogo</button>
+}
+
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+    private String @mylabel = "";
+    private String @mylabel2 = "";
+    private String @ExceptionMessage = "";
+
+    DateTimeOffset gameDate = DateTime.Today;
+    DateTimeOffset openDate = DateTime.Today;
+    String minDate = DateTime.Today.ToString("yyyy-MM-dd");
+    private System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("pt-PT");
+
+    private Clube[] clubes = { };
+    private String clubeEscolhido = "";
+    private Jogo[] jogos = { };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await loadClubes();
+        if (clubes.Length == 0)
+        {
+            mylabel = "Nenhum clube encontrado!";
+        }
+        else
+        {
+            clubeEscolhido = clubes[0].Nome;
+            await loadJogos();
+        }
+    }
+
+    private async Task createGame()
+    {
+        // gameDate openDate clubeEscolhido
+        var apiUrl = "";
+        try
+        {
+            apiUrl = Fut5ApiService.BaseUrl + $"GameCreate/{clubeEscolhido}/{gameDate.ToString("yyyy-MM-dd")}/{openDate.ToString("yyyy-MM-dd")}";
+            var responseData = await Fut5ApiService.apiClient.GetAsync(apiUrl);
+            await loadJogos();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task cancelGame(Jogo jogo)
+    {
+        var apiUrl = "";
+        try
+        {
+            // first parameter "confirm" is the name of the javascript function that will be called. Second string is the prompt.
+            bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"ATENÇÃO!!!\nEliminar o jogo {jogo.Clube} de {jogo.DataJogo.ToString("yyyy-MM-dd")}?");
+            if(confirmed)
+            {
+                apiUrl = Fut5ApiService.BaseUrl + $"GameCancel/{jogo.Clube}/{jogo.DataJogo.ToString("yyyy-MM-dd")}";
+                var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+                var c = JsonSerializer.Deserialize<List<Jogo>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+                jogos = c.ToArray<Jogo>();
+            }
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task loadJogos()
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "Games";
+        try
+        {
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+            var c = JsonSerializer.Deserialize<List<Jogo>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            jogos = c.ToArray<Jogo>();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task loadClubes()
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "Clubes";
+        try
+        {
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+            var c = JsonSerializer.Deserialize<List<Clube>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            clubes = c.ToArray<Clube>();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private void gotoInscriptions()
+    {
+        NavigationManager.NavigateTo("/Jogos");   
+    }
+
+}

@@ -1,0 +1,109 @@
+﻿@page "/AtletaChangePass"
+
+@using System.Text
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+
+@using fut5.Data
+@using fut5.Services
+
+@inject NavigationManager NavigationManager
+
+
+<h1>Alterar PIN</h1>
+
+@if (atletas == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <label>@mylabel</label>
+    <div hidden="@hideThis">
+        @foreach (var a in atletas)
+        {
+            <p>@a.Nome</p>
+            <p>Novo PIN / Password:</p>
+            <p><span><input @bind="@a.Pass"></span></p>
+            <span><button class="btn btn-primary" @onclick="()=>atletaEditSave(a)">Save</button></span>
+        }
+    </div>
+}
+
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+
+    String @mylabel = "";
+    bool @hideThis = false;
+    private String @ExceptionMessage = "";
+    private Atleta[] atletas = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var apiUrl = "";
+        try
+        {
+            mylabel = NavigationManager.Uri.ToString();
+            var atletaEmail = Fut5ApiService.Claims["emailaddress"];
+            mylabel = atletaEmail;
+            apiUrl = Fut5ApiService.BaseUrl + $"atletaget/{atletaEmail}";
+
+            // fetch atleta
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+            var c = JsonSerializer.Deserialize<List<Atleta>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            atletas = c.ToArray<Atleta>();
+
+            if (atletas.Length == 0) // Não existe na base
+            {   // Criar um novo e dar a hipótese de gravar
+                var novo = new Atleta("", atletaEmail, Math.Floor(new Random().NextDouble() * 9999).ToString("0000") , false, false);
+                var l = new List<Atleta>();
+                l.Add(novo);
+                atletas = l.ToArray<Atleta>();
+            }
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task atletaEditSave(Atleta a)
+    {
+        var apiUrl = "";
+        try
+        {
+            mylabel = a.Email;
+            a.Email = a.Email.Trim().ToLower();
+            a.Pass = a.Pass.Trim();
+            if(a.Pass.Length > 0)
+            {
+                var content = new StringContent(JsonSerializer.Serialize<Atleta>(a), Encoding.UTF8, "application/json");
+                apiUrl = Fut5ApiService.BaseUrl + "AtletaSave";
+                var result = await Fut5ApiService.apiClient.PostAsync(apiUrl, content);
+                if (result.IsSuccessStatusCode)
+                {
+                    mylabel = "Alteração efetuada!";
+                    hideThis = true;
+                }
+                else
+                {
+                    mylabel = "Oooops...";
+                }
+            }
+            else
+            {
+                mylabel = "Oooops...";
+            }
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+}

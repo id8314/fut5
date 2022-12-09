@@ -1,0 +1,105 @@
+﻿/* Gradiente background */
+html {
+    min-height: 100%;
+}
+body {
+    /*background: linear-gradient(to right, #0C2262 80%, #7db0de) fixed;*/
+    background: #0C2262;
+    color: whitesmoke;
+}
+/* /Gradiente background */
+
+
+.hr_thick {
+    background: linear-gradient(to right, white 10%, blue) !important;
+    height: 35px !important;
+}
+
+.makeReadonly {
+    pointer-events: none !important;
+}
+
+.btn-100 {
+    width: 120px;
+}
+
+/*https://dev.to/drews256/ridiculously-easy-row-and-column-layouts-with-flexbox-1k01*/
+.jogos-grid-wrapper {
+    margin: 1px;
+    font-family: Calibri;
+    font-size: large;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 90%;
+    height: 30px;
+}
+
+.column {
+    display: block;
+    flex-direction: column;
+    flex-basis: 100%;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+}
+.columnmark {
+    display: block;
+    flex-direction: column;
+    font-size: 21px;
+    width: 35px;
+}
+
+.b_red {
+    background-color: grey;
+}
+
+.b_green {
+    background-color: blue;
+}
+
+.b_nan {
+    background-color: darkslateblue;
+}
+
+
+/* LOADER
+    https://www.w3schools.com/howto/howto_css_loader.asp
+*/
+
+.loader {
+    border: 16px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 16px solid #3498db;
+    width: min(90vw,90vh);
+    height: min(90vw,90vh);
+    /* Viewport-Width is called vw. The complete height of a page is 100vw. */
+    /* Viewport-Height is called vh. The complete height of a page is 100vh. */
+    /* vmin (viewport minimum length) and vmax (viewport maximum length) */
+    -webkit-animation: spin 2s linear infinite; /* Safari */
+    animation: spin 2s linear infinite;
+}
+
+/* Safari */
+@-webkit-keyframes spin {
+    0% {
+        -webkit-transform: rotate(0deg);
+    }
+
+    100% {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

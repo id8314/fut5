@@ -1,0 +1,118 @@
+﻿@page "/ClubeMembers"
+
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using System.Text
+@using fut5.Data
+@using fut5.Services
+
+@inject NavigationManager NavigationManager
+
+<h1>Equipa</h1>
+
+@if (clubes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <label>@mylabel</label>
+    <div class="dcf-overflow-x-auto" tabindex="0">
+
+    @if (atletas.Length > 0)
+    {
+    <table class="dcf-table dcf-w-100%">
+            @if (!(clubes == null || clubes.Length == 0))
+            {
+                <thead>
+                    <tr>
+                        <th scope="col">Nome</th>
+                        <td scope="col">Email</td>
+                        <td scope="col">Ativo</td>
+                    </tr>
+                </thead>
+            }
+            <tbody>
+                @if (!(clubes == null || clubes.Length == 0))
+                {
+                    foreach (var a in atletas)
+                    {
+                        <tr>
+                            <td scope="row">@a.Nome &nbsp;&nbsp;</td>
+                            <td data-label="Email">@a.Email</td>
+                            <td data-label="Ativo">&nbsp;
+                                <input type="checkbox" @bind="@a.Ativo" disabled />
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+    </div>
+}
+
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+
+    String @mylabel="";
+    private String @ExceptionMessage = "";
+    private Clube[] clubes = null;
+    private Atleta[] atletas;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var apiUrl = "";
+        try
+        {
+            await loadClubes();
+            if (clubes.Length == 0)
+            {
+                mylabel = "Nenhum clube encontrado!";
+            }
+            else 
+            {
+                mylabel = NavigationManager.Uri.ToString();
+                var clubeNome = mylabel.Substring(mylabel.IndexOf('?') + 1, mylabel.Length - mylabel.IndexOf('?') - 1);
+                mylabel = clubeNome;
+
+                // fetch atletas
+                apiUrl = Fut5ApiService.BaseUrl + $"ClubeMembers/{clubeNome}";
+                // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+                var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+                var c = JsonSerializer.Deserialize<List<Atleta>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+                atletas = c.ToArray<Atleta>();
+                if (atletas.Length == 0)
+                {
+                    mylabel += " Não tem atletas...";
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task loadClubes()
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "Clubes";
+        try
+        {
+                // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+                var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+                var c = JsonSerializer.Deserialize<List<Clube>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+                clubes = c.ToArray<Clube>();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+}

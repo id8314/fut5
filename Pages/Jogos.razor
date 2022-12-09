@@ -1,0 +1,197 @@
+﻿@page "/Jogos"
+
+@inject NavigationManager NavigationManager
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using System.Text
+@using fut5.Data
+@using fut5.Services
+
+<h3>Jogos</h3>
+<div id="loader" class="@LoaderClass"></div>
+<div hidden="@hideContent">
+    @if (jogos.Length > 0)
+    {
+        @foreach (var kv_jogo_presencas in attendances)
+        {
+
+            { j_sim = 0; j_nao = 0; j_baldas = 0;}
+            <span>
+                @kv_jogo_presencas.Key.Clube, @kv_jogo_presencas.Key.DataJogo.ToString("yyyy-MM-dd")
+                (@culture.DateTimeFormat.GetDayName(@kv_jogo_presencas.Key.DataJogo.DayOfWeek)):
+                </span>
+            {
+                <div class='jogos-grid-wrapper'>
+                @foreach(var p in kv_jogo_presencas.Value)
+                    {
+                        <div class='row'>
+                        @switch (p.Resposta)
+                            {
+                                case -1: j_nao++;
+                                    <div class="columnmark"><i class="fa fa-times"></i></div>
+                                    <div class="column b_red">@p.Nome</div>
+                                    break;
+                                case 0: j_baldas++;
+                                    <div class="columnmark"></div>
+                                    <div class="column b_nan">@p.Nome</div>
+                                    break;
+                                case 1: j_sim++;
+                                    <div class="columnmark"><i class="fa fa-check-circle"></i></div>
+                                    <div class="column b_green">@p.Nome</div>
+                                    break;
+                            }
+                        </div>
+                    }
+               </div>
+            }
+
+            <div class='row'>
+                <div class="columnmark"></div>
+                <div class="column">
+                    @j_sim in, @j_nao out, @j_baldas n/a
+                    <button class="btn btn-primary" @onclick="()=>LoadData()"><i class="fa fa-refresh" aria-hidden="true"></i></button>
+                </div>
+            </div>
+
+            @if ((kv_jogo_presencas.Key.DataInscricoesFim - DateTime.Now).Minutes > 0) // Now ainda é menor do que limite
+            {
+                if ((kv_jogo_presencas.Key.DataInscricoes - DateTime.Now).Minutes <= 0) // Now é maior ou igual do que data de abertura
+                {
+                        <div class='jogos-grid-wrapper'>
+                            <div class='row'>
+                          <div class="columnmark"></div>
+                          <div class="column">Vais Jogar?</div>
+                      </div>
+                      <div class='row'>
+                        <div class="columnmark"></div>
+                        <div class="column">
+                            <button class="btn btn-primary" @onclick="()=>saveMyattendance(kv_jogo_presencas.Key,1)">Sim</button>
+                            <button class="btn btn-primary" @onclick="()=>saveMyattendance(kv_jogo_presencas.Key,-1)">Não</button>
+                            <button class="btn btn-primary" @onclick="()=>saveMyattendance(kv_jogo_presencas.Key,0)">Limpar</button>
+                        </div>
+                      </div>
+                    </div>
+                }
+                else
+                {
+                    <p>
+                        Inscrições a partir de @culture.DateTimeFormat.GetDayName(@kv_jogo_presencas.Key.DataInscricoes.DayOfWeek),<br />
+                        (@kv_jogo_presencas.Key.DataInscricoes.ToString("yyyy-MM-dd")).
+                    </p>
+                }
+            }
+            else
+            {
+                <p>Inscrições Encerradas.</p>
+            }
+            <div><hr class="hr_thick" /></div>
+
+        } @*foreach (var kv_jogo_presencas in attendances)*@
+    }
+</div>
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+    bool hideContent = true;
+    String @LoaderClass = "";
+
+    private String @ExceptionMessage = "";
+    private Jogo[] jogos = { };
+    private Dictionary<Jogo,List<JogoPresenca>> attendances;
+    private System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo("pt-PT");
+    private int j_sim, j_nao, j_baldas = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (Fut5ApiService.Token == "")
+        {
+            NavigationManager.NavigateTo("Login");
+        }
+        else
+        {
+            LoaderClass = "loader";
+            hideContent = true;
+
+            attendances = null;
+            attendances = new Dictionary<Jogo,List<JogoPresenca>>();
+            await GamesGetForMe();
+
+            LoaderClass = "";
+            hideContent = false;
+
+            if (jogos.Length < 1)
+            {
+                ExceptionMessage = "Não há jogos previstos";
+            }
+            else
+            {
+                foreach (var jogo in jogos)
+                {
+                    attendances.Add(jogo, await GamePresences(jogo.Clube, jogo.DataJogo.ToString("yyyy-MM-dd")));
+                }
+            }
+        }
+    }
+
+    private async Task GamesGetForMe()
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "GamesGetFor/";
+        try
+        {
+            apiUrl += Fut5ApiService.Claims["emailaddress"];
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+            var c = JsonSerializer.Deserialize<List<Jogo>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            jogos = c.ToArray<Jogo>();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task<List<JogoPresenca>> GamePresences(string clube, string data)
+    {
+        var p = new List<JogoPresenca>();
+        var apiUrl = Fut5ApiService.BaseUrl + $"GamePresences/{clube}/{data}";
+        try
+        {
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+            p = JsonSerializer.Deserialize<List<JogoPresenca>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+        return p;
+    }
+
+    private async Task saveMyattendance(Jogo j, int resposta)
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "GamePresenceSave/";
+        try
+        {
+            apiUrl += $"{j.Clube}/{j.DataJogo.ToString("yyyy-MM-dd")}/{Fut5ApiService.Claims["emailaddress"]}/{resposta}";
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+            await LoadData();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+}

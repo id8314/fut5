@@ -1,0 +1,121 @@
+﻿@page "/Clubes"
+
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using System.Text
+@using fut5.Data
+@using fut5.Services
+
+@inject NavigationManager NavigationManager
+
+<h1>Clubes</h1>
+
+@if (clubes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <label>@mylabel</label>
+
+    <div class="dcf-overflow-x-auto" tabindex="0">
+        <table class="dcf-table">
+            @if (!(clubes == null || clubes.Length == 0))
+            {
+                <thead>
+                    <tr>
+                        <th scope="col">Nome do clube</th>
+                        <td scope="col"></td>
+                    </tr>
+                </thead>
+            }
+            <tbody>
+                @if (!(clubes == null || clubes.Length == 0))
+                {
+                    foreach (var a in clubes)
+                    {
+                        <tr>
+                            <td>@a.Nome</td>
+                            <td>
+                                <button class="btn btn-primary" @onclick="async ()=>clubMembers(a)">Ver membros</button>
+                            </td>
+                        </tr>
+                    }
+                    <tr><td colspan="2"> <hr /> </td></tr>
+                }
+                <tr>
+                    <td colspan="2">
+                        <label>Id do clube:</label>
+                        <input @bind="@clube.Nome" />
+                        <button class="btn btn-primary" @onclick="()=>clubAdd(clube)">Adicionar clube</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+}
+
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+
+    private String @mylabel="";
+    private String @ExceptionMessage = "";
+    private Clube[] clubes;
+    private Clube clube = new Clube();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await loadClubes();
+        if (clubes.Length == 0)
+        {
+            mylabel = "Nenhum clube encontrado!";
+        }
+    }
+
+    private async Task clubAdd(Clube a)
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "ClubeSave";
+        try
+        {
+            // https://www.aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var content = new StringContent(JsonSerializer.Serialize<Clube>(a), Encoding.UTF8, "application/json");
+            var result = await Fut5ApiService.apiClient.PostAsync(apiUrl, content);
+            // Think twice before calling Result on a Async method https://blog.stephencleary.com/2012/07/dont-block-on-async-code.html
+            await loadClubes(); // refresh
+            NavigationManager.NavigateTo("/Clubes");
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private void clubMembers(Clube a)
+    {
+        NavigationManager.NavigateTo("ClubeMembers?" + a.Nome);
+    }
+
+    private async Task loadClubes()
+    {
+        var apiUrl = Fut5ApiService.BaseUrl + "Clubes";
+        try
+        {
+                // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+                var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+                var c = JsonSerializer.Deserialize<List<Clube>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+                clubes = c.ToArray<Clube>();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+}

@@ -1,0 +1,13 @@
+version: '3.4'
+
+services:
+  fut5:
+    image: fut5
+    build:
+      context: .
+      dockerfile: ./dockerfile
+    ports:
+      - 8800:80
+
+# https://chrissainty.com/containerising-blazor-applications-with-docker-containerising-a-blazor-webassembly-app/
+# Make sure nginx.cfg is saved as UTF-8 without BOM !!!

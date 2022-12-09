@@ -1,0 +1,27 @@
+﻿@page "/"
+
+@using fut5.Services;
+@inject NavigationManager NavigationManager
+
+<PageTitle>Index</PageTitle>
+
+<h1>Fut5!</h1>
+
+<div class='jogos-grid-wrapper'>
+    @foreach (var item in Fut5ApiService.Claims)
+    {
+        <p>@item.Key: @item.Value</p>
+    }
+</div>
+
+@code{
+
+    protected override void OnInitialized()
+    {
+        if (Fut5ApiService.Token == "")
+        {
+            NavigationManager.NavigateTo("Login");
+        }
+    }
+
+}

@@ -1,0 +1,70 @@
+﻿@page "/Eliminar"
+
+@inject NavigationManager NavigationManager
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using System.Text
+@using fut5.Data
+@using fut5.Services
+
+<h3>Eliminar</h3>
+
+<h4>... um aleta OU um clube.<br />Atenção que é irreversível e não pede confirmação!</h4>
+<p>Nota: Case sensitive.</p>
+<hr />
+<p>
+    <label for="atleta">E-mail:</label>
+    <input type="text" name="atleta" @bind-value="@email" />
+    <button class="btn btn-primary" @onclick="()=>deleteAtleta()">DELETE</button>
+</p>
+<hr />
+<p>
+    <label for="clube">Clube:</label>
+    <input type="text" name="clube" @bind-value="@clube" />
+    <button class="btn btn-primary" @onclick="()=>deleteClube()">DELETE</button>
+</p>
+
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+    private string email = "";
+    private string clube = "";
+    private String @ExceptionMessage = "";
+
+    private async Task deleteAtleta()
+    {
+        var apiUrl = "";
+        try
+        {
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            apiUrl = Fut5ApiService.BaseUrl + $"AtletaDelete/{email}";
+            await Fut5ApiService.apiClient.GetAsync(apiUrl);
+            NavigationManager.NavigateTo("/Atletas");
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+    private async Task deleteClube()
+    {
+        var apiUrl = "";
+        try
+        {
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            apiUrl = Fut5ApiService.BaseUrl + $"ClubeDelete/{clube}";
+            await Fut5ApiService.apiClient.GetAsync(apiUrl);
+            NavigationManager.NavigateTo("Clubes");
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+    }
+
+}

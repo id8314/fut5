@@ -1,0 +1,109 @@
+﻿
+@implements IDisposable
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+
+@using fut5.Services;
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">fut5</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All" hidden="@hideThisIfNotAdmin()">
+                <span class="oi oi-home" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Login" hidden="@showLogin()">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Login
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="AtletaChangePass" hidden="@hideThis()">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Alterar PIN
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Atletas" hidden="@hideThisIfNotAdmin()">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Atletas
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Clubes" hidden="@hideThisIfNotAdmin()">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Clubes
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="JogosAdmin" hidden="@hideThisIfNotAdmin()">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Gerir Jogos
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="jogos" hidden="@hideThis()">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Jogos
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Eliminar" hidden="@hideThisIfNotAdmin()">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Eliminar
+            </NavLink>
+        </div>
+    </nav></div>
+
+@code {
+    private bool collapseNavMenu = true;
+    #nullable enable
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    #nullable disable
+
+    private bool hideThis()
+    {
+        return !Fut5ApiService.LoggedIn;
+        // ver tb https://stackoverflow.com/questions/68742064/blazor-refreshing-nav-menu-on-login
+    }
+    private bool showLogin()
+    {
+        return Fut5ApiService.LoggedIn;
+        // ver tb https://stackoverflow.com/questions/68742064/blazor-refreshing-nav-menu-on-login
+    }
+    private bool hideThisIfNotAdmin()
+    {
+        // hide if not logged in or if not admin
+        return !Fut5ApiService.LoggedIn || !Fut5ApiService.IsAdmin;
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // https://stackoverflow.com/a/66125755/251674
+    private void HandleLocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        // rerender component
+        StateHasChanged();
+    }
+    protected override void OnInitialized()
+    {
+        // add to the NavigationManager event
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+    public void Dispose()
+    {
+        // remove from the NavigationManager event
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+    /////////////////////////////////////////////////////////////////////////////
+
+}

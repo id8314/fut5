@@ -1,0 +1,91 @@
+﻿@page "/Atletas"
+
+@using System.Text.Json;
+@using System.Net.Http.Headers;
+@using fut5.Data
+@using fut5.Services
+
+@inject NavigationManager NavigationManager
+
+
+<h1>Atletas</h1>
+
+@if (atletas == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <label>@mylabel</label>
+
+    @foreach (var a in atletas)
+    {
+        <hr />
+        <p>@a.Nome (@a.Email)</p>
+        <p>
+            <input type="checkbox" @bind="@a.Ativo" disabled="">Ativo&nbsp;
+            <input type="checkbox" @bind="@a.IsAdmin" disabled="">Admin
+            PIN @a.Pass
+        </p>
+        <p>
+                <button class="btn btn-primary" @onclick="()=>atletaEdit(a)">Editar</button>
+                <button class="btn btn-primary" @onclick="()=>atletaClubes(a)">Clubes</button>
+        </p>
+    }
+
+<hr class="hr_thick" />
+    <p>Acrescentar Atleta</p>
+    <p>
+        <label>email:</label><input @bind="@atleta.Email" />
+        <button class="btn btn-primary" @onclick="()=>atletaEdit(atleta)">Adicionar atleta</button>
+    </p>
+
+}
+
+<span style="white-space: pre-line">@ExceptionMessage</span>
+
+@code {
+    String @mylabel = "";
+    private String @ExceptionMessage = "";
+    private Atleta[] atletas = { };
+    private Atleta atleta = new Atleta("","","",false,false);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var apiUrl = "";
+        try
+        {
+            // fetch atletas
+            apiUrl = Fut5ApiService.BaseUrl + "Atletas";
+            // Fut5ApiService.apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Fut5ApiService.Token);
+            var responseData = await Fut5ApiService.apiClient.GetStringAsync(apiUrl);
+            var c = JsonSerializer.Deserialize<List<Atleta>>(responseData, new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            atletas = c.ToArray<Atleta>();
+
+            if (atletas.Length == 0)
+            {
+                mylabel = "Nenhum atleta encontrado!";
+            }
+            else
+            {
+                mylabel = atletas.Length.ToString();
+            }
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine("CAUGHT EXCEPTION:");
+            System.Diagnostics.Debug.WriteLine(exception);
+            ExceptionMessage = $"Error contacting API:\n{apiUrl}\n{exception.Message}";
+        }
+
+    }
+
+    private void atletaEdit(Atleta a)
+    {
+        NavigationManager.NavigateTo("AtletaEdit?" + a.Email);
+    }
+    private void atletaClubes(Atleta a)
+    {
+        NavigationManager.NavigateTo("AtletaClubes?" + a.Email);
+    }
+}

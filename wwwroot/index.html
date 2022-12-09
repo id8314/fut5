@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+
+<!--
+    Ver 1.0.7
+
+    Qualquer alteração aqui apagar a pasta
+    %appdata%\..\Local\Microsoft\VisualStudio\17.. (varia)\WebTools
+    Senão a nova versão deste ficheiro não é usada...
+    https://developercommunity.visualstudio.com/t/vs-2022-blazor-app-not-loading-the-current-indexht/1587501
+ -->
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>fut5</title>
+    <base href="/" />
+
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="fut5.styles.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="css/fut5.css" rel="stylesheet" />
+
+    <link href="manifest.json" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+
+</head>
+
+<body>
+    <div id="app">
+        <center>
+            <img src="PortlandPilots.gif" />
+            <pre></pre>
+            <p>fut5</p>
+            <hr style="width:20%">
+            <p>1.0</p>
+        </center>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+</body>
+
+</html>
+ 
